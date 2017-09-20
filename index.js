@@ -1,29 +1,29 @@
 "use strict";
 
-var W3WebSocket = require('websocket').w3cwebsocket;
-var argv = require("optimist").argv;
-var fs = require("fs");
-var chokidar = require("chokidar");
-var sharedb = require("sharedb/lib/client");
-var jsonmlParse = require("jsonml-parse");
-var jsondiff = require("json0-ot-diff");
-var jsonml = require('jsonml-tools');
+const W3WebSocket = require('websocket').w3cwebsocket;
+const argv = require("optimist").argv;
+const fs = require("fs");
+const chokidar = require("chokidar");
+const sharedb = require("sharedb/lib/client");
+const jsonmlParse = require("jsonml-parse");
+const jsondiff = require("json0-ot-diff");
+const jsonml = require('jsonml-tools');
 
-var webstrateId = argv.id || "contenteditable";
-var MOUNT_PATH = "./documents/";
-var MOUNT_POINT = MOUNT_PATH + webstrateId + ".html";
+const webstrateId = argv.id || "contenteditable";
+const MOUNT_PATH = "./documents/";
+const MOUNT_POINT = MOUNT_PATH + webstrateId + ".html";
 
-var host = argv.host || argv.h || "ws://localhost:7007";
+const host = argv.host || argv.h || "ws://localhost:7007";
 
-var normalizeHost = function(host) {
+const normalizeHost = function(host) {
 	const pattern = /^wss?:\/\//;
 	if (pattern.test(host)) {
 		return host;
 	}
 	return "wss://" + host;
-	}
+	};
 
-var cleanUpAndTerminate = function() {
+const cleanUpAndTerminate = function() {
 	try {
 	fs.unlinkSync(MOUNT_POINT);
 	} catch (e) {
@@ -41,20 +41,20 @@ try {
 	fs.mkdirSync(MOUNT_PATH);
 }
 
-var websocket, doc, watcher, oldHtml;
+let doc, watcher, oldHtml;
 
-var setup = function() {
+const setup = function() {
 	oldHtml = "";
 	console.log("Connecting to " + normalizeHost(host) + "...");
-	var websocket = new W3WebSocket(normalizeHost(host) + "/ws/",
+	const websocket = new W3WebSocket(normalizeHost(host) + "/ws/",
 		// 4 times "undefined" is the perfect amount.
 		undefined, undefined, undefined, undefined, {
 			maxReceivedFrameSize: 1024 * 1024 * 20 // 20 MB
 		});
 
-	var conn = new sharedb.Connection(websocket);
+	const conn = new sharedb.Connection(websocket);
 
-	var sdbOpenHandler = websocket.onopen;
+	const sdbOpenHandler = websocket.onopen;
 	websocket.onopen = function(event) {
 		console.log("Connected.");
 		sdbOpenHandler(event);
@@ -62,9 +62,9 @@ var setup = function() {
 
 	// We're sending our own events over the websocket connection that we don't want messing with
 	// ShareDB, so we filter them out.
-	var sdbMessageHandler = websocket.onmessage;
+	const sdbMessageHandler = websocket.onmessage;
 	websocket.onmessage = function(event) {
-		var data = JSON.parse(event.data);
+		let data = JSON.parse(event.data);
 		if (data.error) {
 			console.error("Error:", data.error.message);
 			cleanUpAndTerminate();
@@ -74,7 +74,7 @@ var setup = function() {
 		}
 	};
 
-	var sdbCloseHandler = websocket.onclose;
+	const sdbCloseHandler = websocket.onclose;
 	websocket.onclose = function(event) {
 		console.log("Connection closed:", event.reason);
 		console.log("Attempting to reconnect.");
@@ -84,7 +84,7 @@ var setup = function() {
 		sdbCloseHandler(event);
 	};
 
-	var sdbErrorHandler = websocket.onerror;
+	const sdbErrorHandler = websocket.onerror;
 	websocket.onerror = function(event) {
 		console.log("Connection error.");
 		sdbErrorHandler(event);
@@ -93,7 +93,7 @@ var setup = function() {
 	doc = conn.get("webstrates", webstrateId);
 
 	doc.on('op', function onOp(ops, source) {
-		var newHtml = jsonToHtml(doc.data)
+		let newHtml = jsonToHtml(doc.data);
 		if (newHtml === oldHtml) {
 			return;
 		}
@@ -108,7 +108,7 @@ var setup = function() {
 		if (!doc.type) {
 			console.log("Document doesn't exist on server, creating it.");
 			doc.create('json0');
-			var op = [{ "p": [], "oi": [ "html", {}, [ "body", {} ]]}];
+			let op = [{ "p": [], "oi": [ "html", {}, [ "body", {} ]]}];
 			doc.submitOp(op);
 		}
 
@@ -130,7 +130,7 @@ function normalize(json) {
 		return json;
 	}
 
-	var [tagName, attributes, ...elementList] = json;
+	let [tagName, attributes, ...elementList] = json;
 
 	// Second element should always be an attributes object.
 	if (Array.isArray(attributes) || typeof attributes === "string") {
@@ -182,21 +182,21 @@ function htmlToJson(html, callback) {
 }
 
 function fileChangeListener(path, stats) {
-	var newHtml = fs.readFileSync(MOUNT_POINT, "utf8");
+	let newHtml = fs.readFileSync(MOUNT_POINT, "utf8");
 	if (newHtml === oldHtml) {
 		return;
 	}
 
 	oldHtml = newHtml;
 	htmlToJson(newHtml, function(newJson) {
-		var normalizedOldJson = normalize(doc.data);
-		var normalizedNewJson = normalize(newJson);
-		var ops = jsondiff(doc.data, normalizedNewJson);
+		// var normalizedOldJson = normalize(doc.data);
+		let normalizedNewJson = normalize(newJson);
+		let ops = jsondiff(doc.data, normalizedNewJson);
 		try {
 			doc.submitOp(ops);
 		} catch (e) {
 			console.log("Invalid document, rebuilding.");
-			var op = [{ "p": [], "oi": [ "html", {}, [ "body", {} ]]}];
+			let op = [{ "p": [], "oi": [ "html", {}, [ "body", {} ]]}];
 			doc.submitOp(op);
 		}
 	});
