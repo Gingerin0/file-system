@@ -177,7 +177,8 @@ function htmlToJson(html, callback) {
         if (err) throw err;
         jsonml = recurse(jsonml, function (str, parent) {
             if (["script", "style"].includes(parent[0])) {
-                return str;
+                // return str;
+                // jsonMl.toXml converts < into &lt; --> so we have to convert the back
             }
             return str.replace(/&gt;/g, ">").replace(/&lt;/g, "<").replace(/&amp;/g, "&");
         });
